@@ -105,7 +105,7 @@ class DeleteImage(tables.DeleteAction):
 
     def allowed(self, request, image=None):
         # Only admin can delete image
-        if request.user.tenant_name != 'admin':
+        if not request.user.is_superuser:
             return False
         # Protected images can not be deleted.
         if image and image.protected:
@@ -129,7 +129,7 @@ class CreateImage(tables.LinkAction):
 
     def allowed(self, request, image=None):
         # Only admin can create image
-        if request.user.tenant_name != 'admin':
+        if not request.user.is_superuser:
             return False
         return True
 
