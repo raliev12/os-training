@@ -13,6 +13,7 @@
 #    under the License.
 
 from collections import defaultdict
+from dateutil.parser import parse
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -103,6 +104,9 @@ class DeleteImage(tables.DeleteAction):
     policy_rules = (("image", "delete_image"),)
 
     def allowed(self, request, image=None):
+        # Only admin can delete image
+        if request.user.tenant_name != 'admin':
+            return False
         # Protected images can not be deleted.
         if image and image.protected:
             return False
@@ -122,6 +126,12 @@ class CreateImage(tables.LinkAction):
     classes = ("ajax-modal",)
     icon = "plus"
     policy_rules = (("image", "add_image"),)
+
+    def allowed(self, request, image=None):
+        # Only admin can create image
+        if request.user.tenant_name != 'admin':
+            return False
+        return True
 
 
 class EditImage(tables.LinkAction):
@@ -195,6 +205,22 @@ class OwnerFilter(tables.FixedFilterAction):
         return tenants
 
 
+@filters.register.filter(expects_localtime=True, is_safe=False)
+def datetime(value, arg=None):
+    """Formats a date according to DATETIME format."""
+    if value in (None, ''):
+        return ''
+    if arg is None:
+        arg = 'r'  # RFC 2822 datetime format
+    try:
+        return filters.formats.dateformat.format(value, arg)
+    except filters.AttributeError:
+        try:
+            return filters.format(value, arg)
+        except filters.AttributeError:
+            return ''
+
+
 def get_image_categories(im, user_tenant_id):
     categories = []
     if im.is_public:
@@ -230,6 +256,11 @@ def get_format(image):
         # and should be translated
         return pgettext_lazy("Image format for display in table", u"Raw")
     return format.upper()
+
+
+def get_datetime(image):
+    format = getattr(image, "created_at")
+    return parse(format)
 
 
 class UpdateRow(tables.Row):
@@ -295,6 +326,9 @@ class ImagesTable(tables.DataTable):
                          filters=(filters.filesizeformat,),
                          attrs=({"data-type": "size"}),
                          verbose_name=_("Size"))
+    date = tables.Column(get_datetime,
+                         filters=(datetime,),
+                         verbose_name=_("Created"))
 
     class Meta(object):
         name = "images"
