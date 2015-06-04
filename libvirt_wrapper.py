@@ -2,6 +2,7 @@ import argparse
 
 import libvirt
 
+
 class LibvirtConn:
     def __init__(self):
         self.conn = libvirt.open("qemu:///system")
@@ -38,18 +39,19 @@ class LibvirtConn:
 
 def lvirt_parse__args():
     parser = argparse.ArgumentParser(description="Pythonic wrapper "
-        "for libvirt. Author: Ruslan Aliev")
+                                     "for libvirt. Author: Ruslan Aliev")
     parser.add_argument('--create', dest='xml_file', metavar='VM_NAME',
-        help='Create VM defined in XML_FILE')
+                        help='Create VM defined in XML_FILE')
     parser.add_argument('--delete', dest='name_del', metavar='VM_NAME',
-        help='Delete VM')
+                        help='Delete VM')
     parser.add_argument('--power-on', dest='name_on', metavar='VM_NAME',
-        help='Power ON VM')
+                        help='Power ON VM')
     parser.add_argument('--power-off', dest='name_off', metavar='VM_NAME',
-        help='Power OFF VM')
+                        help='Power OFF VM')
     parser.add_argument('--reboot', dest='name_reboot', metavar='VM_NAME',
-        help='Reboot VM')
+                        help='Reboot VM')
     return parser.parse_args()
+
 
 def lvirt_exec(args):
     try:
@@ -66,9 +68,11 @@ def lvirt_exec(args):
             lvirt.reboot(args.name_reboot)
         else:
             print "No options specified. Use -h for help"
-    except libvirt.libvirtError, le:
+    except libvirt.libvirtError as le:
         raise SystemExit(le.get_error_code())
+    except IOError as ioe:
+        print "IOError:", ioe.filename, ioe.strerror
+        raise SystemExit(ioe.errno)
 
 if __name__ == '__main__':
     lvirt_exec(lvirt_parse__args())
-
